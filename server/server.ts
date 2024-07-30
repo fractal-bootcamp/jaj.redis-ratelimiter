@@ -1,33 +1,47 @@
-const express = require('express');
-const Redis = require('ioredis');
-const { v4: uuidv4 } = require('uuid')
+import { Socket } from 'socket.io';
+import express from 'express';
+import { Redis } from 'ioredis';
+// const { v4: uuidv4 } = require('uuid')
 const http = require('http');
 const socketIo = require('socket.io');
+const cors = require('cors');
+
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const subscriber = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+const io = socketIo(server, {
+    cors: {
+        origin: FRONTEND_URL,
+        methods: ["GET", "POST"]
+    }
+});
 
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const redis = new Redis(REDIS_URL);
+const subscriber = new Redis(REDIS_URL);
+
+app.use(cors({
+    origin: FRONTEND_URL
+}));
 app.use(express.json());
 app.use(express.static('public'));
 
-const RATE_LIMIT = 10
-const TIME_WINDOW = 10;
+const RATE_LIMIT = Number(process.env.RATE_LIMIT) || 10;
+const TIME_WINDOW = Number(process.env.TIME_WINDOW) || 10;
 
 //Add clerk authentication 
 
 //function to publish rate limit events to each channel 
-async function publishRateLimitEvent(channel, isLimited) {
+async function publishRateLimitEvent(channel: string, isLimited: boolean) {
     const message = JSON.stringify({ isLimited, timestamp: Date.now() })
     await redis.publish(channel, message)
 }
 
 
 //1. Fixed Window
-app.post('/fixed-window', async (req, res) => {
+app.post('/fixed-window', async (_, res) => {
     const currentTime = Math.floor(Date.now() / 1000);
     const window = Math.floor(currentTime / TIME_WINDOW);
     const key = `fixedwindow:${window}`;
@@ -44,11 +58,11 @@ app.post('/fixed-window', async (req, res) => {
 });
 
 // 2. Sliding Logs 
-app.post('/sliding-logs', async (req, res) => {
+app.post('/sliding-logs', async (_, res) => {
     const now = Date.now();
     const key = 'slidingLogs';
 
-    await redis.Zremrangebyscore(key, 0, now - (TIME_WINDOW * 1000));
+    await redis.zremrangebyscore(key, 0, now - (TIME_WINDOW * 1000));
     const count = await redis.zcard(key);
 
     if (count >= RATE_LIMIT) {
@@ -68,7 +82,7 @@ app.post('/sliding-logs', async (req, res) => {
 
 //3. Leaky Bucket 
 
-app.post('/leaky-bucket', async (req, res) => {
+app.post('/leaky-bucket', async (_, res) => {
     const now = Date.now();
     const key = 'leakyBucket';
     const capacity = RATE_LIMIT;
@@ -101,12 +115,12 @@ app.post('/leaky-bucket', async (req, res) => {
 });
 
 //4. Sliding Window
-app.post('/sliding-window', async (req, res) => {
+app.post('/sliding-window', async (_, res) => {
     const now = Date.now();
     const windowStart = now - (TIME_WINDOW * 1000);
     const key = 'slidingWindow';
 
-    await redis.Zremrangebyscore(key, 0, windowStart);
+    await redis.zremrangebyscore(key, 0, windowStart);
     const count = await redis.zcard(key);
 
     if (count >= RATE_LIMIT) {
@@ -122,7 +136,7 @@ app.post('/sliding-window', async (req, res) => {
 });
 
 //5. Token Bucket
-app.post('/token-bucket', async (req, res) => {
+app.post('/token-bucket', async (_, res: express.Response) => {
     const now = Date.now();
     const key = 'tokenBucket';
     const refillRate = RATE_LIMIT / TIME_WINDOW;
@@ -154,22 +168,20 @@ app.post('/token-bucket', async (req, res) => {
 // Set up subscribers 
 const algorithms = ['fixedWindow', 'slidingLogs', 'leakyBucket', 'slidingWindow', 'tokenBucket'];
 algorithms.forEach(algorithm => {
-    subscriber.subscribe(algorithm, (err, count) => {
-        if (err) {
-            console.error(`Failed to subscribe to ${algorithm}:`, err);
-        } else {
-            console.log(`Subscribed to ${algorithm}, subscriptions count: ${count}`);
-        }
+    subscriber.subscribe(algorithm).then((count: unknown) => {
+        console.log(`Subscribed to ${algorithm}. Total subscriptions: ${count}`);
+    }).catch((err: Error) => {
+        console.error(`Error subscribing to ${algorithm}:`, err);
     });
 });
 
-subscriber.on('message', (channel, message) => {
+subscriber.on('message', (channel: string, message: string) => {
     const { isLimited, timestamp } = JSON.parse(message);
     console.log(`${channel} is ${isLimited ? 'rate limited' : 'no longer rate limited'} at ${new Date(timestamp)}`);
     io.emit('rateLimitEvent', { algorithm: channel, isLimited, timestamp });
 });
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: Socket) => {
     console.log('New client connected');
     socket.on('disconnect', () => {
         console.log('Client disconnected');
