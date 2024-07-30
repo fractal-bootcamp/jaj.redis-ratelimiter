@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && tsc -p tsconfig.node.json",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "server": "bun --watch server/server.ts"
+    "server": "bun --watch server/server.ts",
+    "start": "node server/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
