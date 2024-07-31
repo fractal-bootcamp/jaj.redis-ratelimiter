@@ -108,7 +108,7 @@ app.post('/leaky-bucket', async (_, res) => {
 
     level += 1;
 
-    await redis.hmset(key, 'level', level, 'lastLeakTime, now');
+    await redis.hmset(key, 'level', level, 'lastLeakTime', now);
     await redis.expire(key, TIME_WINDOW);
 
     if (level === 1) {
