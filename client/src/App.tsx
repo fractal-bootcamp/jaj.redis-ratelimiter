@@ -5,6 +5,8 @@ import './App.css';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 const socket = io(BACKEND_URL);
 
+type Algorithm = 'fixedWindow' | 'slidingLogs' | 'leakyBucket' | 'slidingWindow' | 'tokenBucket';
+
 function App() {
   const [rateLimits, setRateLimits] = useState({
     fixedWindow: false,
@@ -14,9 +16,18 @@ function App() {
     tokenBucket: false,
   });
 
+  const [lastUpdated, setLastUpdated] = useState<Record<Algorithm, Date | null>>({
+    fixedWindow: null,
+    slidingLogs: null,
+    leakyBucket: null,
+    slidingWindow: null,
+    tokenBucket: null,
+  })
+
   useEffect(() => {
     socket.on('rateLimitEvent', (data) => {
       setRateLimits(prev => ({ ...prev, [data.algorithm]: data.isLimited }));
+      setLastUpdated(prev => ({ ...prev, [data.algorithm]: new Date(data.timestamp) }))
     });
 
     return () => {
@@ -43,6 +54,7 @@ function App() {
         <div key={algorithm}>
           <h2>{algorithm}</h2>
           <p>Status: {isLimited ? 'Rate Limited' : 'Not Limited'}</p>
+          <p>Last Updated: {lastUpdated[algorithm as Algorithm] ? lastUpdated[algorithm as Algorithm]?.toLocaleString() : 'N/A'}</p>
           <button onClick={() => makeRequest(algorithm.replace(/([A-Z])/g, '-$1').toLowerCase())}>
             Make Request
           </button>

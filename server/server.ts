@@ -12,7 +12,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 const io = new Server(server, {
     cors: {
         origin: FRONTEND_URL,
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
@@ -21,7 +22,8 @@ const redis = new Redis(REDIS_URL);
 const subscriber = new Redis(REDIS_URL);
 
 app.use(cors({
-    origin: FRONTEND_URL
+    origin: FRONTEND_URL,
+    credentials: true
 }));
 app.use(express.json());
 app.use(express.static('public'));
@@ -108,7 +110,7 @@ app.post('/leaky-bucket', async (_, res) => {
 
     level += 1;
 
-    await redis.hmset(key, 'level', level, 'lastLeakTime, now');
+    await redis.hmset(key, 'level', level, 'lastLeakTime', now);
     await redis.expire(key, TIME_WINDOW);
 
     if (level === 1) {
