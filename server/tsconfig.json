@@ -16,6 +16,9 @@
             "express",
             "socket.io",
             "ioredis"
+        ],
+        "typeRoots": [
+            "./node_modules/@types"
         ]
     },
     "include": [
