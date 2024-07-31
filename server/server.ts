@@ -38,6 +38,12 @@ async function publishRateLimitEvent(channel: string, isLimited: boolean) {
 }
 
 
+// Health check endpoint
+app.get('/', (_, res) => {
+    res.status(200).json({ status: 'OK' });
+});
+
+
 //1. Fixed Window
 app.post('/fixed-window', async (_, res) => {
     const currentTime = Math.floor(Date.now() / 1000);
