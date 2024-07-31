@@ -1,5 +1,5 @@
 import express from 'express';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Redis } from 'ioredis';
 import http from 'http';
 import cors from 'cors';
