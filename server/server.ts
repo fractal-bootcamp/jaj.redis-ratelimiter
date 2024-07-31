@@ -1,5 +1,5 @@
 import express from 'express';
-import { Server as SocketIOServer, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { Redis } from 'ioredis';
 import http from 'http';
 import cors from 'cors';
@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
-const io = new SocketIOServer(server, {
+const io = new Server(server, {
     cors: {
         origin: FRONTEND_URL,
         methods: ["GET", "POST"]
