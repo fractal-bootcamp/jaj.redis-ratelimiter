@@ -1,4 +1,12 @@
 {
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node server.ts"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
@@ -9,11 +17,8 @@
     "@types/express": "^4.17.21",
     "@types/ioredis": "^5.0.0",
     "@types/socket.io": "^3.0.2",
-    "typescript": "^5.0.0"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.1"
   },
   "engines": {
     "node": ">=18.0.0"
