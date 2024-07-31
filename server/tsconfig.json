@@ -10,7 +10,13 @@
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
-        "isolatedModules": true
+        "isolatedModules": true,
+        "types": [
+            "node",
+            "express",
+            "socket.io",
+            "ioredis"
+        ]
     },
     "include": [
         "**/*.ts"

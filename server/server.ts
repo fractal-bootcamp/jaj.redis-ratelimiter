@@ -1,17 +1,15 @@
-import { Socket } from 'socket.io';
 import express from 'express';
+import { Server as SocketIOServer } from 'socket.io';
 import { Redis } from 'ioredis';
-// const { v4: uuidv4 } = require('uuid')
-const http = require('http');
-const socketIo = require('socket.io');
-const cors = require('cors');
+import http from 'http';
+import cors from 'cors';
 
 
 const app = express();
 const server = http.createServer(app);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
-const io = socketIo(server, {
+const io = new SocketIOServer(server, {
     cors: {
         origin: FRONTEND_URL,
         methods: ["GET", "POST"]
@@ -136,7 +134,7 @@ app.post('/sliding-window', async (_, res) => {
 });
 
 //5. Token Bucket
-app.post('/token-bucket', async (_, res: express.Response) => {
+app.post('/token-bucket', async (req: express.Request, res: express.Response) => {
     const now = Date.now();
     const key = 'tokenBucket';
     const refillRate = RATE_LIMIT / TIME_WINDOW;
