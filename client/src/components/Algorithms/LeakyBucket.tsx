@@ -1,18 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 
-interface LeakyBucketProps {
-    rateLimited: boolean;
-    lastUpdated: Date | null;
-    makeRequest: (endpoint: string) => Promise<void>;
-}
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const socket = io(BACKEND_URL);
 
-const LeakyBucket: React.FC<LeakyBucketProps> = ({ rateLimited, lastUpdated, makeRequest }) => {
+const LeakyBucket: React.FC = () => {
+    const [rateLimited, setRateLimited] = useState<boolean>(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+    useEffect(() => {
+        socket.on('rateLimitEvent', (data) => {
+            if (data.algorithm === 'leakyBucket') {
+                setRateLimited(data.isLimited);
+                setLastUpdated(new Date(data.timestamp));
+            }
+        });
+
+        return () => {
+            socket.off('rateLimitEvent');
+        };
+    }, []);
+
+    const handleMakeRequest = async () => {
+        try {
+            await fetch(`${BACKEND_URL}/leaky-bucket`, {
+                method: 'POST',
+            });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
     return (
         <div>
-            <h2>Leaky Bucket</h2>
-            <p>Rate Limited: {rateLimited ? 'Yes' : 'No'}</p>
-            <p>Last Updated: {lastUpdated ? lastUpdated.toLocaleString() : 'N/A'}</p>
-            <button onClick={() => makeRequest('leaky-bucket')}>Make Request</button>
+            <h2 className="text-2xl font-semibold mb-4">Leaky Bucket Algorithm</h2>
+            <p className="mb-2">
+                Status:
+                <span className={rateLimited ? 'text-red-600' : 'text-green-600'}>
+                    {rateLimited ? ' Rate Limited' : ' Not Limited'}
+                </span>
+            </p>
+            <p className="mb-4">
+                Last Updated: {lastUpdated ? lastUpdated.toLocaleString() : 'N/A'}
+            </p>
+            <button
+                onClick={handleMakeRequest}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+            >
+                Make Request
+            </button>
         </div>
     );
 };
