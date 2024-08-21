@@ -9,6 +9,7 @@ const app = express();
 const server = http.createServer(app);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+
 const io = new Server(server, {
     cors: {
         origin: FRONTEND_URL,
@@ -30,8 +31,6 @@ app.use(express.static('public'));
 
 const RATE_LIMIT = Number(process.env.RATE_LIMIT) || 10;
 const TIME_WINDOW = Number(process.env.TIME_WINDOW) || 10;
-
-//Add clerk authentication 
 
 //function to publish rate limit events to each channel 
 async function publishRateLimitEvent(channel: string, isLimited: boolean) {

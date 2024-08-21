@@ -17,7 +17,9 @@
         ]
     },
     "include": [
-        "**/*.ts"
+        "**/*.ts",
+        "algorithms/**/*.ts",
+        "utils/**/*.ts"
     ],
     "exclude": [
         "node_modules"
