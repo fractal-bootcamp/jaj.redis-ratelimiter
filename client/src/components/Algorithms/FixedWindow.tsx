@@ -12,15 +12,22 @@ const FixedWindow: React.FC = () => {
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
     useEffect(() => {
-        socket.on('rateLimitEvent', (data) => {
+        // Listen for 'rateLimitUpdate' events instead of 'rateLimitEvent'
+        socket.on('rateLimitUpdate', (data) => {
             if (data.algorithm === 'fixedWindow') {
-                setRateLimited(data.isLimited);
-                setLastUpdated(new Date(data.timestamp));
+                setRateLimited(data.limited);
+                setLastUpdated(new Date());
+                setInfo({
+                    window: data.window,
+                    count: data.count,
+                    limit: data.limit,
+                    remainingTime: data.remainingTime,
+                });
             }
         });
 
         return () => {
-            socket.off('rateLimitEvent');
+            socket.off('rateLimitUpdate');
         };
     }, []);
 
@@ -29,13 +36,12 @@ const FixedWindow: React.FC = () => {
             const response = await fetch(`${BACKEND_URL}/fixed-window`, {
                 method: 'POST',
             });
-            const data = await response.json();
-            setInfo({
-                window: data.window,
-                count: data.count,
-                limit: data.limit,
-                remainingTime: data.remainingTime,
-            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error:', errorData.error);
+                // Optionally update UI to show error message
+            }
+            // The state will be updated by the socket event, so we don't need to set it here
         } catch (error) {
             console.error('Error:', error);
         }
