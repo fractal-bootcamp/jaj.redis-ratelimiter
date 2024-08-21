@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 import Sidebar from './components/SideBar';
-import { Algorithm, RateLimits, LastUpdated } from './types';
+import AlgorithmDisplay from './components/AlgorithmDisplay';
+import { Algorithm, RateLimited, LastUpdated } from './types';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 const socket = io(BACKEND_URL);
 
 function App() {
-  const [rateLimits, setRateLimits] = useState<RateLimits>({
+  const [rateLimited, setRateLimited] = useState<RateLimited>({
     fixedWindow: false,
     slidingLogs: false,
     leakyBucket: false,
@@ -28,7 +29,7 @@ function App() {
 
   useEffect(() => {
     socket.on('rateLimitEvent', (data) => {
-      setRateLimits(prev => ({ ...prev, [data.algorithm]: data.isLimited }));
+      setRateLimited(prev => ({ ...prev, [data.algorithm]: data.isLimited }));
       setLastUpdated(prev => ({ ...prev, [data.algorithm]: new Date(data.timestamp) }));
     });
 
@@ -60,26 +61,12 @@ function App() {
       />
       <div className="flex-grow p-8">
         <h1 className="text-3xl font-bold mb-8">Rate Limiting Algorithms</h1>
-        {selectedAlgorithm && (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold mb-4">{selectedAlgorithm}</h2>
-            <p className="mb-2">
-              Status:
-              <span className={rateLimits[selectedAlgorithm] ? 'text-red-600' : 'text-green-600'}>
-                {rateLimits[selectedAlgorithm] ? ' Rate Limited' : ' Not Limited'}
-              </span>
-            </p>
-            <p className="mb-4">
-              Last Updated: {lastUpdated[selectedAlgorithm] ? lastUpdated[selectedAlgorithm]?.toLocaleString() : 'N/A'}
-            </p>
-            <button
-              onClick={() => makeRequest(selectedAlgorithm.replace(/([A-Z])/g, '-$1').toLowerCase())}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-            >
-              Make Request
-            </button>
-          </div>
-        )}
+        <AlgorithmDisplay
+          selectedAlgorithm={selectedAlgorithm}
+          rateLimited={rateLimited}
+          lastUpdated={lastUpdated}
+          makeRequest={makeRequest}
+        />
       </div>
     </div>
   );

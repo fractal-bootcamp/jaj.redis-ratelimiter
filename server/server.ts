@@ -55,9 +55,10 @@ app.post('/fixed-window', async (_, res) => {
     const count = await redis.incr(key);
     await redis.expire(key, TIME_WINDOW);
 
+    //Check if rate limit is exceeded and publish event
     if (count > RATE_LIMIT) {
         await publishRateLimitEvent('fixedWindow', true);
-        return res.status(429).json({ error: 'Rate kimit exceeded' });
+        return res.status(429).json({ error: 'Rate limit exceeded' });
     }
 
     res.json({ sucess: true, count });
@@ -71,6 +72,7 @@ app.post('/sliding-logs', async (_, res) => {
     await redis.zremrangebyscore(key, 0, now - (TIME_WINDOW * 1000));
     const count = await redis.zcard(key);
 
+    //Check if rate limit is exceeded and publish event
     if (count >= RATE_LIMIT) {
         await publishRateLimitEvent('slidingLogs', true);
         return res.status(429).json({ error: 'Rate limit exceeeded' });
@@ -103,6 +105,7 @@ app.post('/leaky-bucket', async (_, res) => {
     const elapsedTime = now - lastLeakTime;
     level = Math.max(0, level - elapsedTime * leakRatePerMs);
 
+    //Check if rate limit is exceeded and publish event
     if (level + 1 > capacity) {
         await publishRateLimitEvent('leakyBucket', true);
         return res.status(429).json({ error: 'Rate limit exceeded' });
@@ -129,6 +132,7 @@ app.post('/sliding-window', async (_, res) => {
     await redis.zremrangebyscore(key, 0, windowStart);
     const count = await redis.zcard(key);
 
+    //Check if rate limit is exceeded and publish event
     if (count >= RATE_LIMIT) {
         await publishRateLimitEvent('slidingWindow', true);
         return res.status(429).json({ error: 'Rate limit exceeded' });
@@ -155,6 +159,7 @@ app.post('/token-bucket', async (req: express.Request, res: express.Response) =>
     const elapsedTime = (now - LastRefillTime) / 1000;
     tokens = Math.min(RATE_LIMIT, tokens + elapsedTime * refillRate);
 
+    //Check if rate limit is exceeded and publish event
     if (tokens < 1) {
         await publishRateLimitEvent('tokenBucket', true);
         return res.status(429).json({ error: 'Rate limit exceeded' });
